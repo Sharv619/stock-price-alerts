@@ -150,6 +150,10 @@ if st.button("🔔 Set Alert"):
 
 # ── Section 2: Active alerts ────────────────────────────────────
 st.header("Active Alerts")
+st.caption(
+    "Alerts re-notify while the condition holds, at most once per cooldown "
+    f"({os.getenv('NOTIFY_COOLDOWN_MINUTES', '60')} min). Delete when done."
+)
 
 alerts = fetch_alerts()
 if alerts is None:
@@ -157,15 +161,16 @@ if alerts is None:
 elif not alerts:
     st.caption("No active alerts.")
 else:
-    header = st.columns([2, 2, 2, 2, 1, 1, 1])
+    header = st.columns([2, 2, 2, 2, 1, 1, 2, 1])
     for col, label in zip(
         header,
-        ["Ticker", "Current", "Target", "Condition", "WhatsApp", "Email", ""],
+        ["Ticker", "Current", "Target", "Condition", "WhatsApp", "Email",
+         "Last notified", ""],
     ):
         col.markdown(f"**{label}**")
 
     for a in alerts:
-        cols = st.columns([2, 2, 2, 2, 1, 1, 1])
+        cols = st.columns([2, 2, 2, 2, 1, 1, 2, 1])
         cols[0].write(a["ticker"])
         live = fetch_price(a["ticker"])
         cols[1].write(f"₹{live:,.2f}" if live is not None else "—")
@@ -173,7 +178,11 @@ else:
         cols[3].write(a["condition"])
         cols[4].write("✅" if a["whatsapp_on"] else "—")
         cols[5].write("✅" if a["email_on"] else "—")
-        if cols[6].button("🗑️", key=f"del_{a['id']}"):
+        ln = a.get("last_notified")
+        cols[6].write(
+            datetime.fromisoformat(ln).strftime("%H:%M:%S") if ln else "not yet"
+        )
+        if cols[7].button("🗑️", key=f"del_{a['id']}"):
             api().delete(f"/alerts/{a['id']}")
             fetch_alerts.clear()
             st.rerun()

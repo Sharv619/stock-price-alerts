@@ -80,10 +80,11 @@ if it shows "No price data", the symbol is wrong.
 
 ## 5. How it behaves
 
-- Alerts fire once: after a successful notification the alert is marked
-  `triggered` and disappears from the active list.
+- Alerts re-arm: while the condition holds, you're re-notified at most
+  once per cooldown (`NOTIFY_COOLDOWN_MINUTES` in `.env`, default 60).
+  Delete an alert from the dashboard when you're done with it.
 - If every enabled channel fails to send (bad credentials, network), the
-  alert stays active and is retried on the next 60 s cycle.
+  send is retried on the next 60 s cycle.
 - A failed price fetch never crashes the checker — it logs a warning and
   skips that alert until the next cycle.
 - Check frequency is configurable: set `CHECK_INTERVAL_SECONDS` in `.env`

@@ -25,7 +25,8 @@ class Alert(Base):
     email_on = Column(Boolean, default=False)
     phone = Column(String, nullable=True)
     email = Column(String, nullable=True)
-    triggered = Column(Boolean, default=False)
+    triggered = Column(Boolean, default=False)  # has fired at least once
+    last_notified = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
 
     def to_dict(self):
@@ -39,11 +40,21 @@ class Alert(Base):
             "phone": self.phone,
             "email": self.email,
             "triggered": self.triggered,
+            "last_notified": self.last_notified.isoformat() if self.last_notified else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
 
 Base.metadata.create_all(bind=engine)
+
+# Older DBs predate last_notified — add it in place.
+with engine.connect() as conn:
+    from sqlalchemy import text
+
+    cols = [r[1] for r in conn.execute(text("PRAGMA table_info(alerts)"))]
+    if "last_notified" not in cols:
+        conn.execute(text("ALTER TABLE alerts ADD COLUMN last_notified DATETIME"))
+        conn.commit()
 
 
 def create_alert(ticker, target_price, condition, whatsapp_on=False,
@@ -65,8 +76,9 @@ def create_alert(ticker, target_price, condition, whatsapp_on=False,
 
 
 def get_active_alerts():
+    """All alerts — they stay active and re-notify after the cooldown."""
     with SessionLocal() as db:
-        alerts = db.query(Alert).filter(Alert.triggered.is_(False)).all()
+        alerts = db.query(Alert).all()
         return [a.to_dict() for a in alerts]
 
 
@@ -76,14 +88,19 @@ def get_all_alerts():
         return [a.to_dict() for a in alerts]
 
 
-def mark_triggered(alert_id):
+def mark_notified(alert_id):
     with SessionLocal() as db:
         alert = db.query(Alert).get(alert_id)
         if alert:
             alert.triggered = True
+            alert.last_notified = datetime.now()
             db.commit()
             return True
         return False
+
+
+# Backwards-compat alias
+mark_triggered = mark_notified
 
 
 def delete_alert(alert_id):

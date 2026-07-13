@@ -29,7 +29,7 @@ Current Price: ₹{current_price:,.2f}
 Your Target:   ₹{target_price:,.2f}
 Condition:     Price went {condition} target
 
-Time: {datetime.now().strftime('%d %b %Y %H:%M')}
+Time: {datetime.now().strftime('%d %b %Y %H:%M:%S')}
 """
 
 

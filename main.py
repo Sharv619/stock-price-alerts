@@ -58,10 +58,8 @@ def create_alert(alert: AlertCreate):
 
 
 @app.get("/alerts")
-def list_alerts(include_triggered: bool = False):
-    if include_triggered:
-        return database.get_all_alerts()
-    return database.get_active_alerts()
+def list_alerts():
+    return database.get_all_alerts()
 
 
 @app.delete("/alerts/{alert_id}")
