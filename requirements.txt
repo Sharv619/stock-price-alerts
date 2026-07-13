@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+yfinance
+streamlit
+apscheduler
+sqlalchemy
+python-dotenv
+httpx
