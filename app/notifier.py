@@ -1,5 +1,6 @@
-"""Send alert notifications via Whapi WhatsApp and Gmail SMTP."""
+"""Send alert notifications via Whapi (WhatsApp) and Gmail SMTP."""
 
+import json
 import logging
 import os
 import smtplib
@@ -14,7 +15,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 WHAPI_TOKEN = os.getenv("WHAPI_TOKEN")
-WHAPI_URL = os.getenv("WHAPI_URL", "https://gate.whapi.cloud/").rstrip("/")
+WHAPI_URL = os.getenv("WHAPI_URL", "https://gate.whapi.cloud/")
 GMAIL_USER = os.getenv("GMAIL_USER")
 GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
 
@@ -29,30 +30,39 @@ Current Price: ₹{current_price:,.2f}
 Your Target:   ₹{target_price:,.2f}
 Condition:     Price went {condition} target
 
-Time: {datetime.now().strftime('%d %b %Y %H:%M:%S')}
+Time: {datetime.now().strftime('%d %b %Y %H:%M')}
 """
 
 
 def send_whatsapp(phone, message):
     """Send WhatsApp message via Whapi. Returns True on success."""
     if not WHAPI_TOKEN:
-        logger.warning("WHAPI_TOKEN missing — WhatsApp not sent")
+        logger.warning("Whapi credentials missing — WhatsApp not sent")
         return False
     try:
-        # Whapi expects the number without a leading '+'
-        to = phone.lstrip("+").replace(" ", "")
+        payload = {
+            "to": phone.lstrip("+"),
+            "body": message,
+            "type": "text",
+        }
+        headers = {
+            "Authorization": f"Bearer {WHAPI_TOKEN}",
+            "Content-Type": "application/json",
+        }
         r = httpx.post(
-            f"{WHAPI_URL}/messages/text",
-            headers={"Authorization": f"Bearer {WHAPI_TOKEN}"},
-            json={"to": to, "body": message},
+            f"{WHAPI_URL.rstrip('/')}/messages/text",
+            json=payload,
+            headers=headers,
             timeout=30,
         )
-        if r.status_code in (200, 201):
+        r.raise_for_status()
+        data = r.json()
+        if data.get("sent"):
             logger.info("WhatsApp sent to %s", phone)
             return True
-        logger.error("WhatsApp send failed for %s: %s %s", phone, r.status_code, r.text)
+        logger.warning("Whapi returned not-sent for %s: %s", phone, data)
         return False
-    except httpx.HTTPError as e:
+    except Exception as e:
         logger.error("WhatsApp send failed for %s: %s", phone, e)
         return False
 
