@@ -20,7 +20,7 @@ With this app, I just say: *"Tell me when Apple goes below $200"* — and then I
 3. **I pick how I want to be notified** — WhatsApp, email, or both.
 4. **The app takes over.** A background helper checks the live stock price every 60 seconds.
 5. **When the price crosses my target**, I instantly get a WhatsApp message and/or email.
-6. The alert then switches itself off so I don't get spammed with repeat messages.
+6. The alert stays active and re-notifies every 60 seconds as long as the condition holds — I delete it from the dashboard when I'm done.
 
 ## What I actually built (the pieces)
 
@@ -36,7 +36,7 @@ Think of it like a small team of workers I created:
 
 ## What it uses under the hood (quick version)
 
-- **Live stock prices** come from Yahoo Finance — free, no account needed.
+- **Live stock prices** come from Yahoo Finance (free, no account needed) for most tickers. **Indian stocks (NSE/BSE)** come from Zerodha's Kite Connect, which needs a quick daily login — if the Kite token isn't active, those prices fall back to Yahoo Finance automatically.
 - **WhatsApp messages** are sent through a service called Whapi.
 - **Emails** are sent through my Gmail account.
 - Everything runs **on my own computer** — no cloud servers, no subscriptions, my data stays with me.

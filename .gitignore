@@ -1,5 +1,6 @@
 # Secrets
 .env
+.kite_token
 
 # Data
 alerts.db
