@@ -21,6 +21,28 @@ cp .env.example .env
 The app works without credentials — alerts still trigger and are logged —
 but no messages are sent until you configure at least one channel below.
 
+### Kite Connect (Zerodha)
+
+NSE/BSE stock prices come from Zerodha's Kite Connect API.
+
+1. Create an app at https://developers.kite.trade and copy its credentials
+   into `.env`:
+   - `KITE_API_KEY`
+   - `KITE_API_SECRET`
+2. Set the app's **Redirect URL** in the Kite developer console to
+   `http://127.0.0.1:8600/kite/callback` — it must match the backend port
+   (8600).
+
+**Daily re-login:** Kite access tokens expire every morning. Each day, open
+`http://127.0.0.1:8600/kite/login` (or click the re-login banner in the
+dashboard sidebar), log in with your Zerodha 2FA, and you're redirected back
+with a fresh token saved to `.kite_token`.
+
+- CLI fallback (headless): `python kite_login.py` — prints the login URL,
+  then paste back the `request_token` from the redirect.
+- Until a token is active, NSE/BSE prices fall back to yfinance
+  automatically, so the app keeps working.
+
 ### Whapi (WhatsApp)
 
 1. Sign up at https://whapi.cloud (free trial channel available).
@@ -65,15 +87,16 @@ Open http://localhost:8620
 
 ## 4. Supported ticker formats
 
-Anything Yahoo Finance knows, via yfinance (free, no API key):
+| Type | Examples | Price source |
+|------|----------|--------------|
+| Indian stocks (NSE) | `RELIANCE.NS`, `TCS.NS`, `INFY.NS` | Kite (yfinance fallback) |
+| Indian stocks (BSE) | `RELIANCE.BO` | Kite (yfinance fallback) |
+| Indian indices | `^NSEI` (Nifty 50), `^BSESN` (Sensex) | yfinance |
+| US stocks | `AAPL`, `TSLA`, `NVDA` | yfinance |
+| Crypto | `BTC-USD`, `ETH-USD` | yfinance |
 
-| Type | Examples |
-|------|----------|
-| Indian stocks (NSE) | `RELIANCE.NS`, `TCS.NS`, `INFY.NS` |
-| Indian stocks (BSE) | `RELIANCE.BO` |
-| Indian indices | `^NSEI` (Nifty 50), `^BSESN` (Sensex) |
-| US stocks | `AAPL`, `TSLA`, `NVDA` |
-| Crypto | `BTC-USD`, `ETH-USD` |
+NSE/BSE stock prices come from Kite (with yfinance fallback if the daily
+token isn't active); indices, US stocks, and crypto use yfinance directly.
 
 The dashboard shows a live price preview as soon as you type a ticker —
 if it shows "No price data", the symbol is wrong.

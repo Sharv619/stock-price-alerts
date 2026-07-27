@@ -59,9 +59,17 @@ with engine.connect() as conn:
 
 def create_alert(ticker, target_price, condition, whatsapp_on=False,
                  email_on=False, phone=None, email=None):
+    ticker = ticker.strip().upper()
     with SessionLocal() as db:
+        existing = db.query(Alert).filter(
+            Alert.ticker == ticker,
+            Alert.target_price == target_price,
+            Alert.condition == condition,
+        ).first()
+        if existing:
+            return existing.to_dict()
         alert = Alert(
-            ticker=ticker.strip().upper(),
+            ticker=ticker,
             target_price=target_price,
             condition=condition,
             whatsapp_on=whatsapp_on,

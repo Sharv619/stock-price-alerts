@@ -4,9 +4,10 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from app import database
+from app import database, kite_auth
 from app.price_checker import get_current_price, last_check
 from app.scheduler import is_running, start_scheduler, stop_scheduler
 
@@ -77,6 +78,41 @@ def price(ticker: str):
     return {"ticker": ticker.upper(), "price": p}
 
 
+@app.get("/kite/login")
+def kite_login():
+    """Redirect to the Kite OAuth login page."""
+    try:
+        return RedirectResponse(kite_auth.get_login_url())
+    except RuntimeError as e:
+        raise HTTPException(
+            500, f"{e}. Set KITE_API_KEY / KITE_API_SECRET in .env."
+        )
+
+
+@app.get("/kite/callback", response_class=HTMLResponse)
+def kite_callback(request_token: str | None = None, status: str | None = None):
+    """OAuth redirect target — exchange the request_token for an access token."""
+    if status != "success" or not request_token:
+        return HTMLResponse(
+            "<h3>❌ Kite login failed</h3>"
+            "<p>No request token returned. "
+            '<a href="/kite/login">Try again</a>.</p>',
+            status_code=400,
+        )
+    try:
+        kite_auth.login(request_token)
+    except Exception as e:
+        return HTMLResponse(
+            f"<h3>❌ Kite login failed</h3><p>{e}</p>"
+            '<p><a href="/kite/login">Try again</a>.</p>',
+            status_code=500,
+        )
+    return HTMLResponse(
+        "<h3>✅ Kite authenticated</h3>"
+        "<p>Token saved — close this tab / return to the dashboard.</p>"
+    )
+
+
 @app.get("/health")
 def health():
     return {
@@ -85,4 +121,5 @@ def health():
         "last_check": last_check["time"],
         "alerts_checked": last_check["checked"],
         "active_alerts": len(database.get_active_alerts()),
+        "kite": kite_auth.kite_status(),
     }

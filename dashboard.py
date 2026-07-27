@@ -202,6 +202,15 @@ with st.sidebar:
             if health.get("scheduler_running")
             else "Scheduler status: Stopped ❌"
         )
+        kite = health.get("kite")
+        if kite is not None and not kite["authenticated"]:
+            if not kite["api_key_set"]:
+                st.warning("Kite not configured — set KITE_API_KEY in .env.")
+            else:
+                st.warning(
+                    f"Kite token expired — [click to re-login]({API_URL}/kite/login). "
+                    "NSE/BSE prices fall back to yfinance meanwhile."
+                )
     else:
         st.write("Backend: Unreachable ❌")
     if st.button("🔄 Refresh now"):
