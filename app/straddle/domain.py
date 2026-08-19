@@ -13,6 +13,7 @@ class OptionType(str, Enum):
 
 class PositionSide(str, Enum):
     BUY = "BUY"
+    SELL = "SELL"
 
 
 @dataclass(frozen=True, slots=True)
