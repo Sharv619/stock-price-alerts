@@ -4,8 +4,10 @@ import logging
 import os
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 
+from app.dhan_auth import scheduled_token_refresh
 from app.price_checker import check_all_alerts
 
 load_dotenv()
@@ -20,6 +22,13 @@ scheduler.add_job(
     "interval",
     seconds=CHECK_INTERVAL_SECONDS,
     id="price_check",
+    max_instances=1,
+    coalesce=True,
+)
+scheduler.add_job(
+    scheduled_token_refresh,
+    CronTrigger(hour=8, minute=0, timezone="Asia/Kolkata"),
+    id="dhan_token_refresh",
     max_instances=1,
     coalesce=True,
 )

@@ -1,9 +1,10 @@
 fastapi
 uvicorn
-kiteconnect==5.2.0
+pyotp
 streamlit
 apscheduler
 sqlalchemy
 python-dotenv
 httpx
 yfinance
+pytest

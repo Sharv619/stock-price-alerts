@@ -5,7 +5,7 @@ get a WhatsApp and/or email alert when the price crosses it.
 
 - **Backend**: FastAPI + APScheduler (price check every 60 s, configurable)
 - **Frontend**: Streamlit dashboard
-- **Data**: Kite Connect (Zerodha) for NSE/BSE stocks with yfinance fallback; yfinance for indices, US stocks, and crypto
+- **Data**: DhanHQ for NSE stocks with yfinance fallback; yfinance for BSE, indices, US stocks, and crypto
 - **Notifications**: Whapi (WhatsApp) + Gmail SMTP (email)
 - **Storage**: SQLite (`alerts.db`)
 
@@ -20,19 +20,18 @@ streamlit run dashboard.py --server.port 8620   # terminal 2
 
 Open http://localhost:8620 — full instructions in [SETUP.md](SETUP.md).
 
-> NSE/BSE prices need a quick daily Kite login — open
-> http://127.0.0.1:8600/kite/login (or click the dashboard banner; CLI
-> fallback `python kite_login.py`). See [SETUP.md](SETUP.md) for details.
+> DhanHQ tokens are generated automatically with the configured TOTP and last
+> 24 hours. See [SETUP.md](SETUP.md) for details.
 
 ## Layout
 
 | File | Purpose |
 |------|---------|
 | `app/database.py` | SQLAlchemy model + CRUD for alerts |
-| `app/price_checker.py` | Kite/yfinance price fetch + alert evaluation |
-| `app/kite_auth.py` | Kite Connect token load, validation + OAuth login |
+| `app/price_checker.py` | Batched market-feed price fetch + alert evaluation |
+| `app/dhan_auth.py` | DhanHQ TOTP token load and refresh |
+| `app/market_feed.py` | DhanHQ/yfinance normalized price provider |
 | `app/notifier.py` | Whapi WhatsApp + Gmail SMTP senders |
 | `app/scheduler.py` | APScheduler background loop |
-| `main.py` | FastAPI routes (`/alerts`, `/price/{ticker}`, `/kite/*`, `/health`) |
-| `kite_login.py` | Headless CLI for Kite daily re-login |
+| `main.py` | FastAPI routes (`/alerts`, `/price/{ticker}`, `/health`) |
 | `dashboard.py` | Streamlit UI |

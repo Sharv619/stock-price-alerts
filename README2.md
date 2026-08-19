@@ -36,7 +36,7 @@ Think of it like a small team of workers I created:
 
 ## What it uses under the hood (quick version)
 
-- **Live stock prices** come from Yahoo Finance (free, no account needed) for most tickers. **Indian stocks (NSE/BSE)** come from Zerodha's Kite Connect, which needs a quick daily login — if the Kite token isn't active, those prices fall back to Yahoo Finance automatically.
+- **Live stock prices** come from Yahoo Finance (free, no account needed) for most tickers. **Indian NSE stocks** use DhanHQ's official REST API with automatic TOTP authentication, and fall back to Yahoo Finance when unavailable; BSE remains yfinance-based.
 - **WhatsApp messages** are sent through a service called Whapi.
 - **Emails** are sent through my Gmail account.
 - Everything runs **on my own computer** — no cloud servers, no subscriptions, my data stays with me.

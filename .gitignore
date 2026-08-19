@@ -1,6 +1,10 @@
 # Secrets
 .env
 .kite_token
+.dhan_token
+.dhan_instruments.csv
+.dhan_instrument_cache.json
+*.log
 
 # Data
 alerts.db
