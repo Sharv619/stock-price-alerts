@@ -50,6 +50,13 @@ from app.straddle.paper_trading import (
     exit_paper_position,
     open_paper_position,
 )
+from app.straddle.monitoring import (
+    PositionDataStatus,
+    PositionMarketSnapshot,
+    PositionMonitoringResult,
+    PositionSnapshot,
+    monitor_paper_position,
+)
 from app.straddle.version import STRADDLE_ENGINE_VERSION
 from app.straddle.strategy_service import (
     ConstructionIssue,
@@ -112,4 +119,9 @@ __all__ = [
     "close_paper_position",
     "exit_paper_position",
     "open_paper_position",
+    "PositionDataStatus",
+    "PositionMarketSnapshot",
+    "PositionMonitoringResult",
+    "PositionSnapshot",
+    "monitor_paper_position",
 ]
