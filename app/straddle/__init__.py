@@ -25,6 +25,15 @@ from app.straddle.rules import (
     validate_strategy,
 )
 from app.straddle.version import STRADDLE_ENGINE_VERSION
+from app.straddle.strategy_service import (
+    ConstructionIssue,
+    ConstructionIssueCode,
+    OptionChainSnapshot,
+    OptionContract,
+    StrategyConstructionResult,
+    construct_long_straddle,
+    recommend_atm_strike,
+)
 
 __all__ = [
     "OptionLeg",
@@ -48,4 +57,11 @@ __all__ = [
     "evaluate_position_action",
     "evaluate_risk",
     "validate_strategy",
+    "ConstructionIssue",
+    "ConstructionIssueCode",
+    "OptionChainSnapshot",
+    "OptionContract",
+    "StrategyConstructionResult",
+    "construct_long_straddle",
+    "recommend_atm_strike",
 ]
