@@ -24,6 +24,15 @@ from app.straddle.rules import (
     evaluate_risk,
     validate_strategy,
 )
+from app.straddle.scenario import (
+    ScenarioConfig,
+    ScenarioLabel,
+    ScenarioPoint,
+    ScenarioPreset,
+    ScenarioSimulation,
+    build_scenario_presets,
+    simulate_long_straddle,
+)
 from app.straddle.version import STRADDLE_ENGINE_VERSION
 from app.straddle.strategy_service import (
     ConstructionIssue,
@@ -64,4 +73,11 @@ __all__ = [
     "StrategyConstructionResult",
     "construct_long_straddle",
     "recommend_atm_strike",
+    "ScenarioConfig",
+    "ScenarioLabel",
+    "ScenarioPoint",
+    "ScenarioPreset",
+    "ScenarioSimulation",
+    "build_scenario_presets",
+    "simulate_long_straddle",
 ]
