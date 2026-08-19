@@ -33,6 +33,23 @@ from app.straddle.scenario import (
     build_scenario_presets,
     simulate_long_straddle,
 )
+from app.straddle.paper_trading import (
+    ApprovedStrategy,
+    LifecycleIssue,
+    LifecycleIssueCode,
+    PaperPosition,
+    PaperPositionOpenResult,
+    PaperPositionStatus,
+    PaperPositionTransitionResult,
+    StrategyApprovalResult,
+    StrategyStatus,
+    TradeEvent,
+    TradeEventType,
+    approve_strategy,
+    close_paper_position,
+    exit_paper_position,
+    open_paper_position,
+)
 from app.straddle.version import STRADDLE_ENGINE_VERSION
 from app.straddle.strategy_service import (
     ConstructionIssue,
@@ -80,4 +97,19 @@ __all__ = [
     "ScenarioSimulation",
     "build_scenario_presets",
     "simulate_long_straddle",
+    "ApprovedStrategy",
+    "LifecycleIssue",
+    "LifecycleIssueCode",
+    "PaperPosition",
+    "PaperPositionOpenResult",
+    "PaperPositionStatus",
+    "PaperPositionTransitionResult",
+    "StrategyApprovalResult",
+    "StrategyStatus",
+    "TradeEvent",
+    "TradeEventType",
+    "approve_strategy",
+    "close_paper_position",
+    "exit_paper_position",
+    "open_paper_position",
 ]
