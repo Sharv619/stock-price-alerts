@@ -7,7 +7,9 @@ from datetime import datetime
 import httpx
 import streamlit as st
 
-API_URL = os.getenv("API_URL", "http://localhost:8600")
+API_URL = os.getenv(
+    "API_URL", "https://stock-price-alerts-api.onrender.com"
+).rstrip("/")
 
 st.set_page_config(page_title="Stock Price Alerts", page_icon="📈", layout="wide")
 page = st.sidebar.radio("Workspace", ("Stock Alerts", "StraddleLab"))
