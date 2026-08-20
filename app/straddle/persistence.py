@@ -2,12 +2,12 @@
 
 import json
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Iterable
 
-from sqlalchemy import select
+from sqlalchemy import inspect, select, text
 
 from app.straddle.domain import (
     OptionLeg,
@@ -44,6 +44,29 @@ from app.straddle.rules import RuleResult, RuleSeverity
 def create_straddle_schema(engine) -> None:
     """Create only StraddleLab tables; existing app metadata is untouched."""
     StraddleBase.metadata.create_all(bind=engine)
+    existing = {
+        column["name"]
+        for column in inspect(engine).get_columns("straddle_position_snapshot")
+    }
+    additions = {
+        "call_current_value": "TEXT",
+        "put_current_value": "TEXT",
+        "remaining_call_quantity": "INTEGER",
+        "remaining_put_quantity": "INTEGER",
+        "upper_break_even": "TEXT",
+        "lower_break_even": "TEXT",
+        "distance_to_upper_break_even": "TEXT",
+        "distance_to_lower_break_even": "TEXT",
+    }
+    with engine.begin() as connection:
+        for name, sql_type in additions.items():
+            if name not in existing:
+                connection.execute(
+                    text(
+                        f"ALTER TABLE straddle_position_snapshot "
+                        f"ADD COLUMN {name} {sql_type}"
+                    )
+                )
 
 
 def _jsonable(value):
@@ -58,6 +81,15 @@ def _jsonable(value):
         }
     if isinstance(value, date):
         return {"__type__": "date", "value": value.isoformat()}
+    if isinstance(value, timedelta):
+        return {
+            "__type__": "timedelta",
+            "microseconds": (
+                value.days * 86_400_000_000
+                + value.seconds * 1_000_000
+                + value.microseconds
+            ),
+        }
     if isinstance(value, Enum):
         return {"__type__": "enum", "value": value.value}
     if isinstance(value, dict):
@@ -83,6 +115,8 @@ def _object_hook(value):
         return datetime.fromisoformat(value["value"])
     if value_type == "date":
         return date.fromisoformat(value["value"])
+    if value_type == "timedelta":
+        return timedelta(microseconds=value["microseconds"])
     if value_type == "enum":
         return value["value"]
     return value
@@ -137,13 +171,38 @@ class StoredApproval:
 class StoredPositionSnapshot:
     record_id: int
     position_id: str
+    call_price: Decimal
+    put_price: Decimal
+    spot_price: Decimal
+    call_current_value: Decimal | None
+    put_current_value: Decimal | None
     combined_value: Decimal
     unrealised_pnl: Decimal
     realised_pnl: Decimal
     total_pnl: Decimal
+    remaining_call_quantity: int | None
+    remaining_put_quantity: int | None
+    upper_break_even: Decimal | None
+    lower_break_even: Decimal | None
+    distance_to_upper_break_even: Decimal | None
+    distance_to_lower_break_even: Decimal | None
     captured_at: datetime
+    provider_timestamp: datetime | None
+    received_at: datetime
     data_status: str
     used_last_known_good: bool
+    net_delta: Decimal | None
+    net_gamma: Decimal | None
+    net_theta: Decimal | None
+    net_vega: Decimal | None
+    implied_volatility: Decimal | None
+    rule_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class StoredPaperPosition:
+    strategy_id: str
+    position: PaperPosition
 
 
 @dataclass(frozen=True, slots=True)
@@ -459,10 +518,18 @@ class StraddleRepository:
                     call_price=snapshot.call_price,
                     put_price=snapshot.put_price,
                     spot_price=snapshot.spot_price,
+                    call_current_value=snapshot.call_current_value,
+                    put_current_value=snapshot.put_current_value,
                     combined_value=snapshot.combined_value,
                     unrealised_pnl=snapshot.unrealised_pnl,
                     realised_pnl=snapshot.realised_pnl,
                     total_pnl=snapshot.total_pnl,
+                    remaining_call_quantity=snapshot.remaining_call_quantity,
+                    remaining_put_quantity=snapshot.remaining_put_quantity,
+                    upper_break_even=snapshot.upper_break_even,
+                    lower_break_even=snapshot.lower_break_even,
+                    distance_to_upper_break_even=snapshot.distance_to_upper_break_even,
+                    distance_to_lower_break_even=snapshot.distance_to_lower_break_even,
                     captured_at=snapshot.captured_at,
                     provider_timestamp=snapshot.provider_timestamp,
                     received_at=snapshot.received_at,
@@ -569,6 +636,33 @@ class StraddleRepository:
                 exit_reason=record.exit_reason,
             )
 
+    def load_stored_position(self, position_id: str) -> StoredPaperPosition | None:
+        position = self.load_position(position_id)
+        if position is None:
+            return None
+        with self._session_factory() as session:
+            record = session.get(PaperPositionRecord, position_id)
+            return StoredPaperPosition(record.strategy_id, position)
+
+    def list_positions(self) -> tuple[StoredPaperPosition, ...]:
+        with self._session_factory() as session:
+            ids = session.scalars(
+                select(PaperPositionRecord.id).order_by(PaperPositionRecord.opened_at)
+            ).all()
+        return tuple(
+            stored
+            for position_id in ids
+            if (stored := self.load_stored_position(position_id)) is not None
+        )
+
+    def database_available(self) -> bool:
+        try:
+            with self._session_factory() as session:
+                session.execute(text("SELECT 1"))
+            return True
+        except Exception:
+            return False
+
     def load_calculations(self, strategy_id: str) -> tuple[StrategyCalculation, ...]:
         with self._session_factory() as session:
             records = session.scalars(
@@ -668,15 +762,34 @@ class StraddleRepository:
             ).all()
             return tuple(
                 StoredPositionSnapshot(
-                    record.id,
-                    record.position_id,
-                    record.combined_value,
-                    record.unrealised_pnl,
-                    record.realised_pnl,
-                    record.total_pnl,
-                    record.captured_at,
-                    record.data_status,
-                    record.used_last_known_good,
+                    record_id=record.id,
+                    position_id=record.position_id,
+                    call_price=record.call_price,
+                    put_price=record.put_price,
+                    spot_price=record.spot_price,
+                    call_current_value=record.call_current_value,
+                    put_current_value=record.put_current_value,
+                    combined_value=record.combined_value,
+                    unrealised_pnl=record.unrealised_pnl,
+                    realised_pnl=record.realised_pnl,
+                    total_pnl=record.total_pnl,
+                    remaining_call_quantity=record.remaining_call_quantity,
+                    remaining_put_quantity=record.remaining_put_quantity,
+                    upper_break_even=record.upper_break_even,
+                    lower_break_even=record.lower_break_even,
+                    distance_to_upper_break_even=record.distance_to_upper_break_even,
+                    distance_to_lower_break_even=record.distance_to_lower_break_even,
+                    captured_at=record.captured_at,
+                    provider_timestamp=record.provider_timestamp,
+                    received_at=record.received_at,
+                    data_status=record.data_status,
+                    used_last_known_good=record.used_last_known_good,
+                    net_delta=record.net_delta,
+                    net_gamma=record.net_gamma,
+                    net_theta=record.net_theta,
+                    net_vega=record.net_vega,
+                    implied_volatility=record.implied_volatility,
+                    rule_ids=tuple(deserialize_json(record.rule_results)),
                 )
                 for record in records
             )

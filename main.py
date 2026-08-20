@@ -9,6 +9,11 @@ from pydantic import BaseModel, Field
 from app import database, dhan_auth
 from app.price_checker import get_current_price, last_check
 from app.scheduler import is_running, start_scheduler, stop_scheduler
+from app.straddle.api import (
+    get_straddle_service,
+    initialize_straddle_schema,
+    router as straddle_router,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,12 +23,14 @@ logging.basicConfig(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    initialize_straddle_schema()
     start_scheduler()
     yield
     stop_scheduler()
 
 
 app = FastAPI(title="Stock Price Alerts", lifespan=lifespan)
+app.include_router(straddle_router)
 
 
 class AlertCreate(BaseModel):
@@ -89,4 +96,5 @@ def health():
             "dhan": dhan_auth.dhan_status(),
             "yfinance_fallback": True,
         },
+        "straddlelab": get_straddle_service().health(),
     }

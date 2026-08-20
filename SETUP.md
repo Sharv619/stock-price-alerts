@@ -1,4 +1,4 @@
-# Stock Price Alerts — Setup
+# Stock Price Alerts + StraddleLab — Setup
 
 A single-user, local stock price alert app. Set a target price for any
 yfinance ticker; when the price crosses it, you get a WhatsApp message
@@ -20,6 +20,8 @@ cp .env.example .env
 
 The app works without credentials — alerts still trigger and are logged —
 but no messages are sent until you configure at least one channel below.
+The FastAPI and Streamlit applications also start without Dhan credentials;
+StraddleLab displays provider-unavailable readiness instead of crashing.
 
 ### DhanHQ
 
@@ -27,6 +29,14 @@ NSE equity prices use DhanHQ's official REST API, with yfinance as fallback.
 Enable TOTP in Dhan Web's Trading APIs section, then set `DHAN_CLIENT_ID`,
 `DHAN_PIN`, and `DHAN_TOTP_SECRET` in `.env`. The app generates a 24-hour token
 on demand and stores it in the ignored, permission-restricted `.dhan_token`.
+
+StraddleLab uses Dhan option-chain market data for `NIFTY` and `BANKNIFTY`.
+There is intentionally no yfinance fallback for option premiums: unavailable
+option data is reported clearly and never fabricated. Dhan must provide market
+data access for option construction and manual monitoring refresh.
+
+> **PAPER TRADING ONLY. NO LIVE ORDERS ARE PLACED.** Dhan credentials are used
+> for market-data requests, never broker order execution.
 
 ### Whapi (WhatsApp)
 
@@ -65,6 +75,21 @@ streamlit run dashboard.py --server.port 8620
 
 Open http://localhost:8620
 
+Choose **StraddleLab** in the sidebar for the staged workflow:
+
+1. Construct from a Dhan option-chain snapshot.
+2. Review blocking rules, warnings, and information.
+3. Inspect Decimal calculation outputs and engine version.
+4. Run an explicitly labelled expiry payoff simulation.
+5. Acknowledge required warnings and approve.
+6. Separately open a simulated paper position.
+7. Manually refresh valuation, partially exit, fully exit, and review history.
+8. Download an audit JSON export.
+
+Approval never opens a position automatically. The existing scheduler remains
+limited to stock-alert price checks and Dhan token refresh; it does not mutate
+paper positions.
+
 > Ports: the spec's defaults (8000/8501) were busy on this machine, so the
 > docs use 8600/8620. Any free ports work — if you change the backend port,
 > point the frontend at it with `API_URL`, e.g.
@@ -98,3 +123,28 @@ if it shows "No price data", the symbol is wrong.
 - Check frequency is configurable: set `CHECK_INTERVAL_SECONDS` in `.env`
   (default 60).
 - Data lives in `alerts.db` (SQLite) next to `main.py`.
+- StraddleLab tables are created safely alongside `alerts`; existing alert data
+  is not recreated or deleted.
+- StraddleLab calculations, risk results, snapshots, and trade events retain
+  append-only history for review.
+
+## 6. API and health
+
+FastAPI exposes the stock-alert endpoints unchanged and a bounded
+`/straddle/*` paper workflow. Useful readiness endpoints are:
+
+- `GET /health` — stock-alert and StraddleLab summary
+- `GET /straddle/health` — database, Dhan authentication, option-cache, and
+  paper-only readiness
+
+Health checks are passive: they do not refresh tokens, download instruments,
+or contact a broker.
+
+## 7. Run tests
+
+```bash
+python -m pytest -q
+```
+
+Tests mock external option data and use temporary SQLite databases. They do not
+send notifications or place orders.

@@ -216,6 +216,40 @@ class DhanOptionsProvider(OptionsMarketDataProvider):
             raise ValueError("provider clock must return a timezone-aware datetime")
         return value.astimezone(UTC)
 
+    def cache_status(self) -> dict[str, object]:
+        """Inspect local metadata cache state without network access or refresh."""
+        exists = self._cache_file.exists()
+        fetched_at = None
+        fresh = False
+        try:
+            metadata = json.loads(self._cache_metadata_file.read_text())
+            parsed = datetime.fromisoformat(metadata["fetched_at"])
+            if parsed.tzinfo is not None and parsed.utcoffset() is not None:
+                fetched_at = parsed.astimezone(UTC)
+                fresh = exists and self._now() - fetched_at <= self._cache_ttl
+        except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError):
+            pass
+        return {
+            "available": exists,
+            "fresh": fresh,
+            "fetched_at": fetched_at.isoformat() if fetched_at else None,
+            "ttl_seconds": int(self._cache_ttl.total_seconds()),
+        }
+
+    def status(self) -> dict[str, object]:
+        """Return passive provider readiness without authentication or HTTP calls."""
+        try:
+            auth_status = self._auth.dhan_status()
+        except Exception:
+            auth_status = {"configured": False, "authenticated": False}
+        cache = self.cache_status()
+        return {
+            "configured": bool(auth_status.get("configured")),
+            "authenticated": bool(auth_status.get("authenticated")),
+            "cache": cache,
+            "ready": bool(auth_status.get("authenticated") and cache["available"]),
+        }
+
     def _read_fresh_cache(self) -> bytes | None:
         try:
             metadata = json.loads(self._cache_metadata_file.read_text())

@@ -10,6 +10,13 @@ import streamlit as st
 API_URL = os.getenv("API_URL", "http://localhost:8600")
 
 st.set_page_config(page_title="Stock Price Alerts", page_icon="📈", layout="wide")
+page = st.sidebar.radio("Workspace", ("Stock Alerts", "StraddleLab"))
+if page == "StraddleLab":
+    from app.straddle.ui import render_straddlelab
+
+    render_straddlelab(API_URL)
+    st.stop()
+
 st.title("📈 Stock Price Alerts")
 
 

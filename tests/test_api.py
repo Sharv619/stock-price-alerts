@@ -79,6 +79,7 @@ def test_application_starts_without_credentials_or_provider_network(tmp_path):
 import asyncio
 import app.dhan_auth as auth
 import app.market_feed as feed
+import app.straddle.providers.dhan_options as options
 
 def forbidden(*args, **kwargs):
     raise AssertionError("provider network called during startup")
@@ -86,13 +87,18 @@ def forbidden(*args, **kwargs):
 auth.httpx.post = forbidden
 feed.httpx.get = forbidden
 feed.httpx.post = forbidden
+options.httpx.get = forbidden
+options.httpx.post = forbidden
 import main
+from sqlalchemy import inspect
 
 async def verify_startup():
     async with main.lifespan(main.app):
         response = main.health()
         assert response["market_data"]["dhan"]["configured"] is False
         assert response["scheduler_running"] is True
+        assert response["straddlelab"]["paper_trading_only"] is True
+        assert "straddle_strategy" in inspect(main.database.engine).get_table_names()
 
 asyncio.run(verify_startup())
 '''

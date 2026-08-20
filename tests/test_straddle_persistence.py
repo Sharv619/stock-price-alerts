@@ -457,6 +457,7 @@ def test_json_serialization_is_deterministic_and_typed():
         "timestamp": CREATED_AT,
         "date": EXPIRY,
         "enum": TradeEventType.NOTE_ADDED,
+        "duration": timedelta(seconds=45),
     }
     encoded = serialize_json(value)
     assert encoded == serialize_json(value)
@@ -466,6 +467,7 @@ def test_json_serialization_is_deterministic_and_typed():
         "timestamp": CREATED_AT,
         "date": EXPIRY,
         "enum": "NOTE_ADDED",
+        "duration": timedelta(seconds=45),
     }
 
 
