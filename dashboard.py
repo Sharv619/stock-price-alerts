@@ -22,6 +22,7 @@ if page == "StraddleLab":
 st.title("📈 Stock Price Alerts")
 
 
+@st.cache_resource
 def api():
     return httpx.Client(base_url=API_URL, timeout=30)
 
