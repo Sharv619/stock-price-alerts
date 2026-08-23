@@ -48,6 +48,14 @@ Use the dashboard sidebar to switch between **Stock Alerts** and
 | `main.py` | FastAPI stock-alert routes plus the `/straddle/*` router |
 | `dashboard.py` | Streamlit UI |
 
+## Roadmap
+
+Phase 11 is documented as a proposed, separately deployable historical-replay
+microservice within this monorepository. It will ingest user-uploaded NSE CSVs and
+replay a recurring four-leg NIFTY calendar straddle without sharing the alert
+database or runtime. It is not implemented yet. See
+[Phase 11 — NSE Calendar Replay Microservice](docs/PHASE_11_CALENDAR_REPLAY_MICROSERVICE.md).
+
 ## StraddleLab scope and limitations
 
 - Long BUY straddles only: matching CALL and PUT, same strike/expiry/quantity.

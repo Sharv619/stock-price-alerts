@@ -114,8 +114,8 @@ def normalize_instrument_rows(
         except ValueError as exc:
             raise InstrumentMetadataError("security IDs must be integers") from exc
         try:
-            lot_size = int(lot_value)
-        except ValueError as exc:
+            lot_size = int(Decimal(str(lot_value).strip()))
+        except (ValueError, InvalidOperation) as exc:
             raise InstrumentMetadataError(f"invalid lot size: {lot_value!r}") from exc
         if lot_size <= 0:
             raise InstrumentMetadataError(f"invalid lot size: {lot_value!r}")
